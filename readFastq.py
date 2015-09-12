@@ -1,15 +1,12 @@
 __author__ = 'jeff'
 
-# sanger encoding (0 - 40)
-sanger = '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHI'
-# solexa64 encoding (-5 - 40)
-solexa64 = ';<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh'
-# phred64 (illumina 1.3+) (0-40)
-phred64_1_3 = '@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh'
-# phred64 (illumina 1.5+) (3-40)
-phred64_1_5 = 'BCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh'
-# phred33 (illumina 1.8+) (0-41)
-phred33 = '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJ'
+testQual = '@CCFDFFFHHHHHIJJIJJJJJJJJJJE@F:D?@DDGHB?BFHJJG8BGI###.-BDHDECHFHB?CEFEDEEDCDDDDDDCB?5@CDC@A?B<ACDD><A'
+
+encodings = {'sanger': '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHI', # (0 - 40)
+             'solexa64': ';<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh', # (-5 - 40)
+             'phred64_1.3': '@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh', # illumina 1.3+ (0 - 40)
+             'phred64_1.5': 'BCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh', # illumina 1.5+ (3 - 40)
+             'phred33': '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJ'} # illumina 1.8+ (0 - 41)
 
 # determine quality encoding of line, needs to read a whole bunch of lines or else you end up with phred64_1.5 by default
 def getLineEncoding(quals):
@@ -27,7 +24,7 @@ def getLineEncoding(quals):
             encoding = 'phred64_1.5'
     return encoding
 # test
-assert('phred33' == getLineEncoding('@CCFDFFFHHHHHIJJIJJJJJJJJJJE@F:D?@DDGHB?BFHJJG8BGI###.-BDHDECHFHB?CEFEDEEDCDDDDDDCB?5@CDC@A?B<ACDD><A'))
+assert(getLineEncoding(testQual) == 'phred33')
 
 fileTest = 'uber_short.fastq'
 
@@ -60,7 +57,8 @@ def getFileEncoding(fileName):
                 encodingList.append(getLineEncoding(line))
             nLine += 1
 
-        # okay have our per-line encodings, determine file encoding by looking for the most restrictive encodings
+        # okay have our per-line encodings, determine file encoding by looking for the presence of the most to least
+        # restrictive encodings
         if 'phred33' in encodingList: encoding = 'phred33'
         elif 'sanger' in encodingList: encoding = 'sanger'
         elif 'solexa64' in encodingList: encoding = 'solexa64'
@@ -68,3 +66,13 @@ def getFileEncoding(fileName):
         else: encoding = 'phred64_1.5'
     return encoding
 assert(getFileEncoding(fileTest) == 'phred33')
+
+# convert letter encodings to numeric q values
+def encoding2num(quals, encoding):
+    numericQuals = []
+    for char in quals:
+        numericQuals.append(encodings[encoding].find(char))
+    return numericQuals
+
+print(encoding2num(testQual, getFileEncoding(fileTest)))
+

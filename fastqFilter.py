@@ -1,9 +1,36 @@
 #!/usr/bin/python3
 
 from numpy import *
+import getopt
+import sys
 
+# some test values and defaults
 testQual = '@CCFDFFFHHHHHIJJIJJJJJJJJJJE@F:D?@DDGHB?BFHJJG8BGI###.-BDHDECHFHB?CEFEDEEDCDDDDDDCB?5@CDC@A?B<ACDD><A'
 qmin = 30
+inputName = ''
+outputName = ''
+helpString = 'fastqFilter.py -i <inputfile> [-q <minReadQual>] [-o <outputfile>]'
+
+# parse arguments
+argv = sys.argv
+try:
+    optList, argval = getopt.getopt(argv[1:], 'hq:i:o:')
+except getopt.GetoptError:
+    print(helpString)
+    sys.exit()
+
+for option, val in optList:
+    if option == '-h':
+        print(helpString)
+    elif option == '-q':
+        qmin = float(val)
+    elif option == '-i':
+        inputName = val
+    elif option == '-o':
+        outputName = val
+if inputName == '':
+    print(helpString)
+    sys.exit('Requires input file.')
 
 # encoding symbols
 encodings = {'sanger': '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHI', # (0 - 40)
@@ -83,7 +110,7 @@ def encoding2num(quals, encoding):
     numericQuals = []
     for char in quals:
         numericQuals.append(encodings[encoding].find(char))
-    return array(numericQuals) - offsets[encoding]
+    return array(numericQuals) + offsets[encoding]
 
 def parseFile(fileName):
     enc = getFileEncoding(fileName)
@@ -108,27 +135,32 @@ def parseFile(fileName):
         nonlocal quals
         quals = content
         return mean(encoding2num(content, enc))
+    switch = {0: setHeader,
+              1: setBases,
+              2: setQHeader,
+              3: setQuals}
 
     # open file and only write reads to console if they meet certain quality values
     nLine = 0
+
+    if outputName != '':
+        outfile = open(outputName, 'w')
     with open(fileName) as file:
         while True:
             line = file.readline()
             if not line: break
 
             n = nLine % 4
-
-            switch = {0: setHeader,
-                      1: setBases,
-                      2: setQHeader,
-                      3: setQuals}
             qstat = switch[n](line)
 
-            # do we filter out this value?
+            # do we filter out this read?
             if (n == 3) and (qstat >= qmin):
-                # dump to console
-                print(header, bases, qHeader, quals, sep = '', end = '')
+                if outputName == '':
+                    # dump to console
+                    print(header, bases, qHeader, quals, sep = '', end = '')
+                else:
+                    outfile.writelines([header, bases, qHeader, quals])
 
-            nLine += 1;
+            nLine += 1
 
-parseFile(fileTest)
+parseFile(inputName)

@@ -1,12 +1,22 @@
-__author__ = 'jeff'
+#!/usr/bin/python3
+
+from numpy import *
 
 testQual = '@CCFDFFFHHHHHIJJIJJJJJJJJJJE@F:D?@DDGHB?BFHJJG8BGI###.-BDHDECHFHB?CEFEDEEDCDDDDDDCB?5@CDC@A?B<ACDD><A'
+qmin = 30
 
+# encoding symbols
 encodings = {'sanger': '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHI', # (0 - 40)
              'solexa64': ';<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh', # (-5 - 40)
              'phred64_1.3': '@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh', # illumina 1.3+ (0 - 40)
              'phred64_1.5': 'BCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh', # illumina 1.5+ (3 - 40)
              'phred33': '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJ'} # illumina 1.8+ (0 - 41)
+# encoding offsets
+offsets = {'sanger': 0,
+           'solexa64': -5,
+           'phred64_1.3': 0,
+           'phred64_1.5': 3,
+           'phred33': 0}
 
 # determine quality encoding of line, needs to read a whole bunch of lines or else you end up with phred64_1.5 by default
 def getLineEncoding(quals):
@@ -69,10 +79,56 @@ assert(getFileEncoding(fileTest) == 'phred33')
 
 # convert letter encodings to numeric q values
 def encoding2num(quals, encoding):
+    quals = quals.replace('\n', '')
     numericQuals = []
     for char in quals:
         numericQuals.append(encodings[encoding].find(char))
-    return numericQuals
+    return array(numericQuals) - offsets[encoding]
 
-print(encoding2num(testQual, getFileEncoding(fileTest)))
+def parseFile(fileName):
+    enc = getFileEncoding(fileName)
 
+    header = ''
+    def setHeader(content):
+        nonlocal header
+        header = content
+        return 0
+    bases = ''
+    def setBases(content):
+        nonlocal bases
+        bases = content
+        return 0
+    qHeader = ''
+    def setQHeader(content):
+        nonlocal qHeader
+        qHeader = content
+        return 0
+    quals = ''
+    def setQuals(content):
+        nonlocal quals
+        quals = content
+        return mean(encoding2num(content, enc))
+
+    # open file and only write reads to console if they meet certain quality values
+    nLine = 0
+    with open(fileName) as file:
+        while True:
+            line = file.readline()
+            if not line: break
+
+            n = nLine % 4
+
+            switch = {0: setHeader,
+                      1: setBases,
+                      2: setQHeader,
+                      3: setQuals}
+            qstat = switch[n](line)
+
+            # do we filter out this value?
+            if (n == 3) and (qstat >= qmin):
+                # dump to console
+                print(header, bases, qHeader, quals, sep = '', end = '')
+
+            nLine += 1;
+
+parseFile(fileTest)

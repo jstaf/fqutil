@@ -61,7 +61,8 @@ def main(argv):
                 print(read['header'], read['bases'][start:end], '\n', read['qheader'], read['quals'][start:end], '\n',\
                       sep='', end='')
             else:
-                outFile.writelines([read['header'], read['bases'][start:end], read['qheader'], read['quals'][start:end]])
+                outFile.writelines([read['header'], read['bases'][start:end], '\n', \
+                                    read['qheader'], read['quals'][start:end], '\n'])
     parser.file.close()
     if outputName != '':
         outFile.close()

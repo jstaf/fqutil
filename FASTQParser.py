@@ -3,6 +3,7 @@
 __author__ = 'jeff'
 
 from numpy import array
+import os, sys
 
 # encoding symbols
 encodings = {'sanger': '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHI',  # (0 - 40)
@@ -50,9 +51,12 @@ class FASTQParser:
     numReads = 0
 
     def __init__(self, fileName):
-        self.fileName = fileName
-        self.encoding = self.getFileEncoding()
-        self.file = open(fileName, 'r')
+        if os.path.isfile(fileName):
+            self.fileName = fileName
+            self.encoding = self.getFileEncoding()
+            self.file = open(fileName, 'r')
+        else:
+            sys.exit('Invalid filename.')
 
     # determine file length and encoding by iterating through file q values
     def getFileEncoding(self):

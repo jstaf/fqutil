@@ -104,3 +104,6 @@ class FASTQParser:
                      'quals': self.file.readline()}
         self.numReads += 1
         return self.read
+
+    def close(self):
+        self.file.close()

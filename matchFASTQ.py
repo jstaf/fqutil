@@ -13,10 +13,9 @@ helpString = '\nUsage:\n\nmatchFASTQ -1 <fastqFile1> -2 <fastqFile2>\n'
 fastq1 = ''
 fastq2 = ''
 rexp = '\w+:\w+\s'
-outDir = 'matchOut'
 
 def main(argv):
-    opts, args = getopt.getopt(argv[1:], '1:2:ho:r:', 'help')
+    opts, args = getopt.getopt(argv[1:], '1:2:hr:', 'help')
     for opt, val in opts:
         if opt == '-1':
             fastq1 = val
@@ -24,8 +23,6 @@ def main(argv):
             fastq2 = val
         elif opt in ['-h', '--help']:
             sys.exit(helpString)
-        elif opt == '-o':
-            outDir = val
         elif opt == '-r':
             rexp = val
         else:
@@ -37,60 +34,63 @@ def main(argv):
     global regex
     regex = re.compile(rexp)
 
-    os.mkdir(outDir)
-    matchReads(fastq1, fastq2, outDir)
+    matchReads(fastq1, fastq2)
     return
 
 def indexFile(fileName):
     idxParser = FASTQParser(fileName)
 
-    # read file, retrieve read names for 100000 reads, dump to temp file, store in dict that says in which file the read
-    #  is. We will later retrieve matched reads based on this dictionary
-    last = -1
-    nread = 10000000000 # to force file creation
-    tmpFile = None
     IDStore = {}
     try:
         while True:
-            # open new tmp file and reset
-            if nread > 100000:
-                nread = 0
-                last += 1
-                if tmpFile is not None:
-                    tmpFile.close()
-                #TODO double check the path filenaming conventions
-                tmpFile = open(outDir + '/' + fileName + '.' + str(last), mode='bw')
-
             # process individual reads
+            pos = idxParser.file.tell()
             read = idxParser.nextRead()
             # break at EOF
             if read['quals'] == '':
                 break
-            # qual header is lost to save space (all it needs to be is a '+' anyways...)
-            tmpFile.writelines([read['header'], read['bases'], read['quals']])
-            # get tile X/Y position and use as key for dictionary that stores (file# and line#) for later use with
-            # linecache
-            IDStore[regex.findall(read['header'])[0]] = (last, nread)
-            nread += 1
+            # get tile X/Y position and use as key for dictionary that stores file position for later read
+            IDStore[regex.findall(read['header'])[0]] = pos
     finally:
         idxParser.close()
     return IDStore
 
-def matchAgainstIndex(toMatchFile, index):
-    toMatchParser = FASTQParser(toMatchFile)
+def matchReads(fastq1, fastq2):
+    idxStore = indexFile(fastq1)
+
+    # open file handles
+    fastq1_common = open(fastq1 + '.common', 'w')
+    fastq1_unique = open(fastq1 + '.unique', 'w')
+    fastq2_common = open(fastq2 + '.common', 'w')
+    fastq1_parser = FASTQParser(fastq1)
+    fastq2_parser = FASTQParser(fastq2)
     while True:
-        read = toMatchParser.nextRead()
+        read = fastq1_parser.nextRead()
         # EOF
         if read['quals'] == '':
             break
-        #TODO add crap here
-    return
+        ID = regex.findall(read['header'])[0]
+        if ID in idxStore:
+            # write both reads out to common files, remove key from index
+            fastq1_common.writelines([read['header'], read['bases'], read['qheader'], read['quals']])
 
-# function prototype
-def matchReads(toMatch, matchAgainst, outDir):
-    idxStore = indexFile(toMatch)
-    newIndex = matchAgainstIndex(matchAgainst, idxStore)
-    idxStore = matchAgainstIndex(toMatch, newIndex)
+            fastq2_parser.file.seek(idxStore.pop(ID))
+            readMatch = fastq2_parser.nextRead()
+            fastq2_common.writelines([readMatch['header'], readMatch['bases'], readMatch['qheader'], readMatch['quals']])
+        else:
+            # write out to unique file for fastq1
+            fastq1_unique.writelines([read['header'], read['bases'], read['qheader'], read['quals']])
+    # close file handles
+    fastq1_common.close()
+    fastq1_unique.close()
+    fastq2_common.close()
+
+    # all remaining keys in dictionary are the unique reads for fastq2
+    with open(fastq2 + '.common', 'w') as fastq2_unique:
+        for remaining in idxStore:
+            fastq2_parser.file.seek(idxStore[remaining])
+            read = fastq2_parser.nextRead()
+            fastq2_unique.writelines([read['header'], read['bases'], read['qheader'], read['quals']])
     return
 
 if __name__ == '__main__':

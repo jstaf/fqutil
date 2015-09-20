@@ -9,7 +9,7 @@ import sys, getopt, os, re
 from FASTQParser import *
 
 # defaults, edit if you're feeling brave.
-helpString = '\nUsage:\n\nmatchFASTQ -1 <fastqFile1> -2 <fastqFile2>\n'
+helpString = '\nUsage:\n\nmatchFASTQ -1 <fastqFile1> -2 <fastqFile2> [-r "alternate regular expression to parse read header"]\n'
 fastq1 = ''
 fastq2 = ''
 rexp = '\w+:\w+\s'
@@ -86,7 +86,7 @@ def matchReads(fastq1, fastq2):
     fastq2_common.close()
 
     # all remaining keys in dictionary are the unique reads for fastq2
-    with open(fastq2 + '.common', 'w') as fastq2_unique:
+    with open(fastq2 + '.unique', 'w') as fastq2_unique:
         for remaining in idxStore:
             fastq2_parser.file.seek(idxStore[remaining])
             read = fastq2_parser.nextRead()

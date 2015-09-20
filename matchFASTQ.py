@@ -91,6 +91,8 @@ def matchReads(fastq1, fastq2):
             fastq2_parser.file.seek(idxStore[remaining])
             read = fastq2_parser.nextRead()
             fastq2_unique.writelines([read['header'], read['bases'], read['qheader'], read['quals']])
+    fastq1_parser.close()
+    fastq2_parser.close()
     return
 
 if __name__ == '__main__':

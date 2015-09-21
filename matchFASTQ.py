@@ -8,13 +8,13 @@ __author__ = 'jeff'
 import sys, getopt, os, re
 from FASTQParser import *
 
-# defaults, edit if you're feeling brave.
 helpString = '\nUsage:\n\nmatchFASTQ -1 <fastqFile1> -2 <fastqFile2> [-r "alternate regular expression to parse read header"]\n'
-fastq1 = ''
-fastq2 = ''
-rexp = '\w+:\w+\s'
 
 def main(argv):
+    fastq1 = ''
+    fastq2 = ''
+    rexp = '\w+:\w+\s'
+
     opts, args = getopt.getopt(argv[1:], '1:2:hr:', 'help')
     for opt, val in opts:
         if opt == '-1':
@@ -56,7 +56,7 @@ def indexFile(fileName):
     return IDStore
 
 def matchReads(fastq1, fastq2):
-    idxStore = indexFile(fastq1)
+    idxStore = indexFile(fastq2)
 
     # open file handles
     fastq1_common = open(fastq1 + '.common', 'w')
@@ -70,7 +70,7 @@ def matchReads(fastq1, fastq2):
         if read['quals'] == '':
             break
         ID = regex.findall(read['header'])[0]
-        if ID in idxStore:
+        if ID in idxStore.keys():
             # write both reads out to common files, remove key from index
             fastq1_common.writelines([read['header'], read['bases'], read['qheader'], read['quals']])
 

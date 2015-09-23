@@ -8,7 +8,7 @@ Requires Python 3.4, but otherwise can be invoked from the command-line like any
 
 **FASTQFilter.py** - Remove all reads in a FASTQ file below a certain Phred quality score. 
 
-  Usage: ./FASTQFilter.py [-q <minReadQual>] [-o <outputfile>] <inputFile>
+  Usage: ./FASTQFilter.py [-q \<minReadQual\>] [-o \<outputfile\>] \<inputFile\>
   
   Default value for -q is 30. Output is to console unless you specify a value for -o
   
@@ -16,7 +16,7 @@ Requires Python 3.4, but otherwise can be invoked from the command-line like any
   
 **FASTQTrimmer.py** - Starting from both ends, trim a read so that bases below a certain Phred quality score are removed. If the entire read sucks (and there's not a single base above the minimum q score), the entire read is removed.
 
-  Usage: ./FASTQTrimmer.py [-q <minReadQual>] [-o <outputfile>] <inputFile>  
+  Usage: ./FASTQTrimmer.py [-q \<minReadQual\>] [-o \<outputfile\>] \<inputFile\>  
   
   Default value for -q is 30. Output is to console unless you specify a value for -o
 
@@ -24,7 +24,7 @@ Requires Python 3.4, but otherwise can be invoked from the command-line like any
   
 **matchFASTQ.py** - Re-pair the reads in two FASTQ files if reads have been filtered out or otherwise reordered. It's basically a Python version of [cmpfastq.pl](http://compbio.brc.iop.kcl.ac.uk/software/cmpfastq.php), except that it actually works with the latest Illumina format (cmpfastq is currently bugged and outputs everything as "unique").
 
-  Usage: ./matchFASTQ.py [-r] -1 <FASTQfile1> -2 <FASTQfile2>
+  Usage: ./matchFASTQ.py [-r] -1 \<FASTQfile1\> -2 \<FASTQfile2\>
   
   -r controls what Python regular expression is used to parse the Illumina headers (you can change it if your reads have a funky header ID). The default for -r is currently '\w+:\w+\s', which corresponds to the X/Y read coordinate position in the tile.
   

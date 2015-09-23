@@ -26,7 +26,7 @@ Requires Python 3.4, but otherwise can be invoked from the command-line like any
 
   Usage: ./matchFASTQ.py [-r] -1 \<FASTQfile1\> -2 \<FASTQfile2\>
   
-  -r controls what Python regular expression is used to parse the Illumina headers (you can change it if your reads have a funky header ID). The default for -r is currently '\w+:\w+\s', which corresponds to the X/Y read coordinate position in the tile.
+  -r controls what Python regular expression is used to parse the Illumina headers (you can change it if your reads have a funky header ID). The default for -r is currently '\w+:\w+\s', which corresponds to the X/Y read coordinate position in the flowcell. To use the entire ID (current Illumina format), you could use something like  '\w+:\w+:\w+:\w+:\w+:\w+:\w+\s' or '\s.*\ '. In the case of multiple matches, only the first occurrence is used.
   
 This creates four output files:
   +  FASTQfile1.common - reads that were present in both files (and in the correct order too!)

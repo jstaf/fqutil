@@ -1,4 +1,5 @@
 .idea/
-fblood*
 __pycache__
-test.fastq
+*.html
+*.zip
+*.fastq

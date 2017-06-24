@@ -8,11 +8,11 @@ Requires Python 3.4, but otherwise can be invoked from the command-line like any
 
 **fq-repair** - Re-pair the reads in two FASTQ files if reads have been filtered out or otherwise reordered. It's basically a Python version of [cmpfastq.pl](http://compbio.brc.iop.kcl.ac.uk/software/cmpfastq.php), except that it actually works with the latest Illumina format and can handle gzipped files.
   
-This creates four output files:
+This creates two output files (two additional files if unique reads are kept):
   +  fastq1_common.fastq[.gz] - reads that were present in both files (and in the correct order too!)
-  +  fastq1_unique.fastq[.gz] - reads present only in fastq1
   +  fastq2_common.fastq[.gz] - reads that were present in both files
-  +  fastq2_unique.fastq[.gz] - reads present only in fastq2
+  +  fastq1_unique.fastq[.gz] - reads present only in fastq1 (only if invoked with `-u`)
+  +  fastq2_unique.fastq[.gz] - reads present only in fastq2 (only if invoked with `-u`)
   
 The unique reads can be aligned as single-end reads depending on your aligner.
 

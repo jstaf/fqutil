@@ -12,8 +12,8 @@ setup(
         install_requires=[
             'biopython',
             'numpy'
-        ]
-        scripts=glob('./fq-*'),
+        ],
+        scripts=glob.glob('./fq-*'),
         zip_safe=False
         )
 

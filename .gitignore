@@ -1,5 +1,6 @@
 .idea/
 .vscode/
+.eggs/
 __pycache__
 *.html
 *.zip

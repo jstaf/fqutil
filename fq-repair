@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 
-import sys
-import os
-import re
-import gzip
 import argparse
 
 from fqutils.fastq import Fastq
@@ -27,42 +23,40 @@ def main():
 
     fq1 = argv.fastq1
     fq2 = argv.fastq2
+    pair_reads(fq1, fq2)
 
 
-
-def index(list_of_fastqs):
+def index(filename):
     """
     Create a dictionary of readids and their seek positions.
     """
     
     idx = {}
-    for filename in list_of_fastqs:
-        file_idx = {}
-        with Fastq(filename) as fq:
-            while True:
-                read, pos = fq.get_read()
-                if read is None:
-                    break
-                else:
-                    file_idx[read[0]] = pos
-        idx[filename] = file_idx
+    with Fastq(filename) as fq:
+        while True:
+            read = fq.get_read()
+            if read is None:
+                break
+            else:
+                idx[read[0]] = fq.pos
     return idx
 
 
-def matchReads(fastq1, fastq2):
+def pair_reads(fastq1, fastq2, keep_unique=False):
     idx = index(fastq2)
 
     # input file handles
-    fastq1_orig = [Fastq(fname) for fname in fastq1]
-    fastq2_orig = [Fastq(fname) for fname in fastq2]
+    fastq1_orig = Fastq(fastq1)
+    fastq2_orig = Fastq(fastq2)
 
     # output file handles
     fastq1_common = Fastq(util.prefix_extension(fastq1, '_common'), 'w')
-    fastq1_unique = Fastq(util.prefix_extension(fastq1, '_unique'), 'w')
     fastq2_common = Fastq(util.prefix_extension(fastq2, '_common'), 'w')
+    if keep_unique:
+        fastq1_unique = Fastq(util.prefix_extension(fastq1, '_unique'), 'w')
 
     while True:
-        read1, pos = fastq1_orig.nextRead()
+        read1 = fastq1_orig.nextRead()
         if read1 is None:
             break
         readid = read1[0]
@@ -70,25 +64,27 @@ def matchReads(fastq1, fastq2):
             # write both reads out to common files, remove key from index
             fastq1_common.write(read1)
             fastq2_orig.file.seek(idx.pop(readid))
-            read2, pos = fastq2_orig.nextRead()
+            read2 = fastq2_orig.nextRead()
             fastq2_common.write(read2)
-        else:
+        elif keep_unique:
             # write out to unique file for fastq1
             fastq1_unique.writelines(read1)
     # close file handles
     fastq1_common.close()
-    fastq1_unique.close()
     fastq2_common.close()
+    if keep_unique:
+        fastq1_unique.close()
 
-    # all remaining keys in dictionary are the unique reads for fastq2
-    with open(fastq2 + '.unique', 'w') as fastq2_unique:
-        for remaining in idxStore:
-            fastq2_parser.file.seek(idxStore[remaining])
-            read = fastq2_parser.nextRead()
-            fastq2_unique.writelines([read['header'], read['bases'], read['qheader'], read['quals']])
-    fastq1_parser.close()
-    fastq2_parser.close()
-    return
+    if keep_unique:
+        # all remaining keys in dictionary are the unique reads for fastq2
+        with Fastq(util.prefix_extension(fastq1, '_common'), 'w') as fastq2_unique:
+            for remaining in idx:
+                fastq2_orig.seek(idx[remaining])
+                read = fastq2_orig.nextRead()
+                fastq2_unique.writelines(read)
+        fastq1_orig.close()
+        fastq2_orig.close()
+
 
 if __name__ == '__main__':
     main()

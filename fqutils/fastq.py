@@ -1,10 +1,17 @@
 """A helper class with some fastq parsing methods"""
 
+import os
+import sys
+import re
+import gzip
+
 class Fastq:
     """
     Helper class to rapidly parse fastq/gz as raw text. 
     (Biopython's Bio.SeqIO.index() does not support gzip compression :'( )
     """
+
+    pos = None
 
     def __init__(self, filename, mode='r'):
         if not os.path.isfile(filename):
@@ -43,14 +50,14 @@ class Fastq:
 
     def get_read(self):
         """Get a fastq read. Returns None at EOF"""
-        pos = self.handle.tell()
+        self.pos = self.handle.tell()
         read = []
         for i in range(4):  # assumes 4-line FASTQ
             line = self.handle.readline()
             if line == '':
                 return None  # EOF
             read.append(line)
-        return (read, pos)
+        return read
 
 
     def write(self, read):

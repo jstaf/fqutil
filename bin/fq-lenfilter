@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-import sys, argparse, os
+import sys
+import argparse
+import os
 from Bio import SeqIO
 
 parser = argparse.ArgumentParser(description='Remove reads above or below a certain length from a FASTQ file.')
@@ -17,3 +19,4 @@ with open(argv.outputFASTQ[0], 'w') as out:
     for record in SeqIO.parse(argv.inputFASTQ[0], 'fastq'):
         if argv.min <= len(record) <= argv.max:
             SeqIO.write(record, out, 'fastq')
+

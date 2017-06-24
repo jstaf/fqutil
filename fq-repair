@@ -1,60 +1,114 @@
 #!/usr/bin/env python3
 
-# This script will compare two FASTQ files and find and separate 
-# paired/nonpaired reads. Basically a replacement for
-# cmpfastq.perl, which no longer works and cannot read gzipped files.
-
 import sys
-import getopt  #TODO remove dep
 import os
-import argparse
 import re
-from fqutils.FASTQParser import *  #TODO use biopython
-
-helpString = '\nUsage:\n\nmatchFASTQ -1 <fastqFile1> -2 <fastqFile2> [-r "alternate regular expression to parse read header"]\n'
+import gzip
+import argparse
 
 def main():
     parser = argparse.ArgumentParser(
-            description='Re-pair reads from discordant FASTQ files (for instance, after filtering reads by quality). Input and output files can be gzipped (file format is autodetected from file extension).')
+            description='Re-pair reads from discordant FASTQ files (for instance, after filtering reads by quality).')
+    parser.add_argument('-v', '--version', action='version', version='fq-repair version 1.0')
     parser.add_argument('-u', '--keep-unique', default=False, const=True, action='store_const',
             help='Keep reads without a corresponding match. Unique reads are output to a separate file (filename_unique.fastq).')
     parser.add_argument('-1', '--output1', nargs=1, type=str,
-            help='Output for first FASTQ file after re-pairing (defaults to "filename_common.fastq")')
+            help='Output for first FASTQ file after re-pairing (defaults to "filename_common.fastq"). May be gzipped.')
     parser.add_argument('-2', '--output2', nargs=1, type=str,
-            help='Output for second FASTQ file after re-pairing (defaults to "filename_common.fastq")')
+            help='Output for second FASTQ file after re-pairing (defaults to "filename_common.fastq"). May be gzipped.')
     parser.add_argument('fastq1', nargs=1, type=str,
             help='First FASTQ file to be re-paired.')
     parser.add_argument('fastq2', nargs=1, type=str,
             help='Second FASTQ file to be re-paired.')
     argv = parser.parse_args()
 
-    if not os.path.isfile(argv.fastq1) or not os.path.isfile(argv.fastq2):
-        sys.exit('Requires two valid input files.')
-
-#    matchReads(fastq1, fastq2)
+    fq1 = argv.fastq1
+    fq2 = argv.fastq2
 
 
-def indexFile(fileName):
-    idxParser = FASTQParser(fileName)
+class Fastq:
+    """
+    Helper class to rapidly parse fastq/gz as raw text. 
+    (Biopython's Bio.SeqIO.index() does not support gzip compression :'( )
+    """
 
-    IDStore = {}
-    try:
-        while True:
-            # process individual reads
-            pos = idxParser.file.tell()
-            read = idxParser.nextRead()
-            # break at EOF
-            if read['quals'] == '':
-                break
-            # get tile X/Y position and use as key for dictionary that stores file position for later read
-            IDStore[regex.findall(read['header'])[0]] = pos
-    finally:
-        idxParser.close()
-    return IDStore
+    def __init__(self, filename, mode='r'):
+        if not os.path.isfile(filename):
+            sys.exit('%s is not a valid file path.' % filename)
+        self.filename = filename
+        self.mode = mode
+        self.handle = self.open()
+
+    
+    def __enter__(self):
+        pass  # handle is already open
+
+    
+    def __exit__(self, typee, value, traceback):
+        self.close()
+
+    
+    def is_gzip(self):
+        return len(re.findall(r'.gz$', self.filename)) > 0
+
+
+    def open(self):
+        """
+        Autodetect extension and return filehandle.
+        """
+        if self.is_gzip():
+            self.mode = self.mode + 'b'
+            return gzip.open(self.filename, mode=self.mode)
+        else:
+            return open(self.filename, self.mode)
+
+
+    def close(self):
+        self.handle.close()
+
+
+    def get_read(self):
+        """Get a fastq read. Returns None at EOF"""
+        pos = self.handle.tell()
+        read = []
+        for i in range(4):  # assumes 4-line FASTQ
+            line = self.handle.readline()
+            if line == '':
+                return None  # EOF
+            read.append(line)
+        return (read, pos)
+
+
+    def write(self, read):
+        self.handle.writelines(read)
+
+    
+    def seek(self, position):
+        """Jump to a particular file position"""
+        self.handle.seek(position)
+
+
+def index(list_of_fastqs):
+    """
+    Create a dictionary of readids and their seek positions.
+    """
+    
+    idx = {}
+    for filename in list_of_fastqs:
+        file_idx = {}
+        with Fastq(filename) as fq:
+            while True:
+                read, pos = fq.get_read()
+                if read is None:
+                    break
+                else:
+                    file_idx[read[0]] = pos
+        idx[filename] = file_idx
+    return idx
 
 
 def matchReads(fastq1, fastq2):
-    idxStore = indexFile(fastq2)
+    idx = index(fastq2)
 
     # open file handles
     fastq1_common = open(fastq1 + '.common', 'w')

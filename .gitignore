@@ -1,7 +1,10 @@
 .idea/
+.vscode/
 __pycache__
 *.html
 *.zip
+*.pdf
+*.cmd
 *.fastq
 *.gz
 *.swp

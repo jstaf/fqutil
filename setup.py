@@ -14,6 +14,8 @@ setup(
             'numpy'
         ],
         scripts=glob.glob('./fq-*'),
-        zip_safe=False
+        zip_safe=False,
+        setup_requires=['pytest-runner'],
+        tests_require=['pytest']
         )
 

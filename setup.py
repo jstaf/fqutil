@@ -13,7 +13,7 @@ setup(
             'biopython',
             'numpy'
         ]
-        scripts=glob('bin/*'),
+        scripts=glob('./fq-*'),
         zip_safe=False
         )
 

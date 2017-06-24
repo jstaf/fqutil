@@ -5,39 +5,34 @@
 # cmpfastq.perl, which no longer works and cannot read gzipped files.
 
 import sys
-import getopt
+import getopt  #TODO remove dep
 import os
+import argparse
 import re
-from fqutils.FASTQParser import *
+from fqutils.FASTQParser import *  #TODO use biopython
 
 helpString = '\nUsage:\n\nmatchFASTQ -1 <fastqFile1> -2 <fastqFile2> [-r "alternate regular expression to parse read header"]\n'
 
-def main(argv):
-    fastq1 = ''
-    fastq2 = ''
-    rexp = '\w+:\w+\s'
+def main():
+    parser = argparse.ArgumentParser(
+            description='Re-pair reads from discordant FASTQ files (for instance, after filtering reads by quality). Input and output files can be gzipped (file format is autodetected from file extension).')
+    parser.add_argument('-u', '--keep-unique', default=False, const=True, action='store_const',
+            help='Keep reads without a corresponding match. Unique reads are output to a separate file (filename_unique.fastq).')
+    parser.add_argument('-1', '--output1', nargs=1, type=str,
+            help='Output for first FASTQ file after re-pairing (defaults to "filename_common.fastq")')
+    parser.add_argument('-2', '--output2', nargs=1, type=str,
+            help='Output for second FASTQ file after re-pairing (defaults to "filename_common.fastq")')
+    parser.add_argument('fastq1', nargs=1, type=str,
+            help='First FASTQ file to be re-paired.')
+    parser.add_argument('fastq2', nargs=1, type=str,
+            help='Second FASTQ file to be re-paired.')
+    argv = parser.parse_args()
 
-    opts, args = getopt.getopt(argv[1:], '1:2:hr:', 'help')
-    for opt, val in opts:
-        if opt == '-1':
-            fastq1 = val
-        elif opt == '-2':
-            fastq2 = val
-        elif opt in ['-h', '--help']:
-            sys.exit(helpString)
-        elif opt == '-r':
-            rexp = val
-        else:
-            sys.exit('Unsupported parameter')
-    if fastq1 == '' or fastq2 == '':
-        print(helpString)
+    if not os.path.isfile(argv.fastq1) or not os.path.isfile(argv.fastq2):
         sys.exit('Requires two valid input files.')
 
-    global regex
-    regex = re.compile(rexp)
+#    matchReads(fastq1, fastq2)
 
-    matchReads(fastq1, fastq2)
-    return
 
 def indexFile(fileName):
     idxParser = FASTQParser(fileName)
@@ -56,6 +51,7 @@ def indexFile(fileName):
     finally:
         idxParser.close()
     return IDStore
+
 
 def matchReads(fastq1, fastq2):
     idxStore = indexFile(fastq2)
@@ -98,5 +94,5 @@ def matchReads(fastq1, fastq2):
     return
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()
 

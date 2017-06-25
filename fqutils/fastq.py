@@ -105,4 +105,5 @@ class Fastq:
             self.handle = temp
             self.seek(0)
             self.lineno = 0
+            self.is_gzip = False
         return idx

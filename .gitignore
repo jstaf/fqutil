@@ -2,13 +2,16 @@
 .vscode/
 .eggs/
 .cache/
-*.egg-info
-__pycache__
+*.egg-info/
+__pycache__/
+
 *.html
 *.zip
 *.pdf
 *.cmd
+*.swp
+
 /*.fastq
 /*.gz
-*.swp
+tests/*_common.fastq*
 

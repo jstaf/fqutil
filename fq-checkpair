@@ -22,8 +22,8 @@ def main():
             sys.exit()
         elif line1[0] != line2[0]:
             print('FASTQ pairing mismatch detected:')
-            print('%s:%s readid %s' % (fq1.filename, fq1.lineno, line1[0]), end='')
-            print('%s:%s readid %s' % (fq2.filename, fq2.lineno, line2[0]), end='')
+            print('%s:%s readid %s' % (fq1.filename, fq1.lineno * 4 - 3, line1[0]), end='')
+            print('%s:%s readid %s' % (fq2.filename, fq2.lineno * 4 - 3, line2[0]), end='')
             sys.exit(1)
 
 

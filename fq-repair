@@ -23,7 +23,7 @@ def main():
 
     fq1 = argv.fastq1[0]
     fq2 = argv.fastq2[0]
-    pair_reads(fq1, fq2)
+    pair_reads(fq1, fq2, keep_unique=argv.keep_unique)
 
 
 def index(filename):

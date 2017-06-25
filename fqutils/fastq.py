@@ -11,10 +11,10 @@ class Fastq:
     (Biopython's Bio.SeqIO.index() does not support gzip compression :'( )
     """
 
-    pos = None
+    pos = 0
 
     def __init__(self, filename, mode='r'):
-        if not os.path.isfile(filename):
+        if 'r' in mode and not os.path.isfile(filename):
             sys.exit('%s is not a valid file path.' % filename)
         self.filename = filename
         self.mode = mode
@@ -22,7 +22,7 @@ class Fastq:
 
     
     def __enter__(self):
-        pass  # handle is already open
+        return self
 
     
     def __exit__(self, typee, value, traceback):
@@ -60,7 +60,7 @@ class Fastq:
         return read
 
 
-    def write(self, read):
+    def writelines(self, read):
         self.handle.writelines(read)
 
     

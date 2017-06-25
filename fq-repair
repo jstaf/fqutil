@@ -21,8 +21,8 @@ def main():
             help='Second FASTQ file to be re-paired.')
     argv = parser.parse_args()
 
-    fq1 = argv.fastq1
-    fq2 = argv.fastq2
+    fq1 = argv.fastq1[0]
+    fq2 = argv.fastq2[0]
     pair_reads(fq1, fq2)
 
 
@@ -56,16 +56,16 @@ def pair_reads(fastq1, fastq2, keep_unique=False):
         fastq1_unique = Fastq(util.prefix_extension(fastq1, '_unique'), 'w')
 
     while True:
-        read1 = fastq1_orig.nextRead()
+        read1 = fastq1_orig.get_read()
         if read1 is None:
             break
         readid = read1[0]
         if readid in idx.keys():
             # write both reads out to common files, remove key from index
-            fastq1_common.write(read1)
-            fastq2_orig.file.seek(idx.pop(readid))
-            read2 = fastq2_orig.nextRead()
-            fastq2_common.write(read2)
+            fastq1_common.writelines(read1)
+            fastq2_orig.seek(idx.pop(readid))
+            read2 = fastq2_orig.get_read()
+            fastq2_common.writelines(read2)
         elif keep_unique:
             # write out to unique file for fastq1
             fastq1_unique.writelines(read1)
@@ -80,7 +80,7 @@ def pair_reads(fastq1, fastq2, keep_unique=False):
         with Fastq(util.prefix_extension(fastq1, '_common'), 'w') as fastq2_unique:
             for remaining in idx:
                 fastq2_orig.seek(idx[remaining])
-                read = fastq2_orig.nextRead()
+                read = fastq2_orig.get_read()
                 fastq2_unique.writelines(read)
         fastq1_orig.close()
         fastq2_orig.close()

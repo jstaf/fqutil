@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-__author__ = 'jeff'
-
 from numpy import array
 import os, sys
 

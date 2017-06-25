@@ -2,7 +2,51 @@ import os
 import sys
 import gzip
 
+import numpy as np
 import fqutils.util as util
+
+# encoding symbols
+encodings = {'sanger': '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHI',  # (0 - 40)
+             'solexa64': ';<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh',  # (-5 - 40)
+             'phred64_1.3': '@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh',  # illumina 1.3+ (0 - 40)
+             'phred64_1.5': 'BCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh',  # illumina 1.5+ (3 - 40)
+             'phred33': '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJ'}  # illumina 1.8+ (0 - 41)
+# encoding offsets
+offsets = {'sanger': 0,
+           'solexa64': -5,
+           'phred64_1.3': 0,
+           'phred64_1.5': 3,
+           'phred33': 0}
+
+
+def _get_line_encoding(quals):
+    """
+    Determine quality encoding of line. 
+    It is not sufficient to run this on a single line to determine a file's encoding.
+    """
+    if '#' in quals:
+        if 'J' in quals:
+            encoding = 'phred33'
+        else:
+            encoding = 'sanger'
+    else:
+        if ';' in quals:
+            encoding = 'solexa64'
+        elif '@' in quals:
+            encoding = 'phred64_1.3'
+        else:
+            encoding = 'phred64_1.5'
+    return encoding
+
+
+def encoding2num(quals, encoding):
+    """Convert FASTQ quals to numeric Q values"""
+    quals = quals.replace('\n', '')
+    numeric_quals = []
+    for char in quals:
+        numeric_quals.append(encodings[encoding].find(char))
+    return np.array(numeric_quals) + offsets[encoding]
+
 
 class Fastq:
     """
@@ -62,6 +106,33 @@ class Fastq:
             read.append(line)
         self.lineno += 1
         return read
+
+    
+    def get_encoding(self):
+        """Determine encoding by iterating through first 10000 read quals."""
+        startpos = self.pos
+        self.seek(0)
+        enclist = []
+        for i in range(10000):
+            read = self.get_read()
+            if read is None:
+                break
+            else:
+                enclist.append(read[2])
+        self.seek(startpos)
+
+        # determine file encoding by looking for the presence of the most to least
+        # restrictive encodings
+        if 'phred33' in enclist:
+            return 'phred33'
+        elif 'sanger' in enclist:
+            return 'sanger'
+        elif 'solexa64' in enclist:
+            return 'solexa64'
+        elif 'phred64_1.3' in enclist:
+            return 'phred64_1.3'
+        else:
+            return 'phred64_1.5'
 
 
     def writelines(self, read):

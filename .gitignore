@@ -4,6 +4,7 @@
 .cache/
 *.egg-info/
 __pycache__/
+archive/
 
 *.html
 *.zip

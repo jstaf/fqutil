@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# get word counts from gzipped files
+
+for FILE in $@; do
+	printf '%-30s %s\n' "$FILE" "$(zcat $FILE | wc -l)"
+done 

@@ -1,7 +1,8 @@
 import os
 import sys
-import re
 import gzip
+
+import fqutils.util as util
 
 class Fastq:
     """
@@ -10,12 +11,14 @@ class Fastq:
     """
 
     pos = 0
+    lineno = 0
 
     def __init__(self, filename, mode='r'):
         if 'r' in mode and not os.path.isfile(filename):
             sys.exit('%s is not a valid file path.' % filename)
         self.filename = filename
         self.mode = mode
+        self.is_gzip = util.is_gzip(self.filename)
         self.handle = self.open()
 
     
@@ -26,16 +29,12 @@ class Fastq:
     def __exit__(self, typee, value, traceback):
         self.close()
 
-    
-    def is_gzip(self):
-        return len(re.findall(r'.gz$', self.filename)) > 0
-
 
     def open(self):
         """
         Autodetect extension and return filehandle.
         """
-        if Fastq.is_gzip(self.filename):
+        if self.is_gzip:
             self.mode = self.mode + 'b'
             return gzip.open(self.filename, mode=self.mode)
         else:
@@ -51,18 +50,20 @@ class Fastq:
         self.pos = self.handle.tell()
         read = []
         for i in range(4):  # assumes 4-line FASTQ
-            line = self.handle.readline().decode()  #TODO just use bytes
+            line = self.handle.readline()
+            if self.is_gzip:
+                line = line.decode()
             if line == '' or line == b'':
                 return None  # EOF
             read.append(line)
+        self.lineno += 1
         return read
 
 
     def writelines(self, read):
-        if Fastq.is_gzip(self.filename):
-            self.handle.writelines([b.encode() for b in read])  #TODO just use bytes
-        else:
-            self.handle.writelines(read)
+        if self.is_gzip:
+            read = [b.encode() for b in read]
+        self.handle.writelines(read)
 
     
     def seek(self, position):

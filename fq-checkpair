@@ -7,7 +7,7 @@ from fqutils.fastq import Fastq
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Check that two FASTQ read files are properly paired. Exits with offending FASTQ line number if check fails.")
+        description="Check that two FASTQ read files are properly paired. Exits with offending FASTQ line numbers and readids if check fails.")
     parser.add_argument('fastq1', nargs=1, type=str, help='First FASTQ file to check')
     parser.add_argument('fastq2', nargs=1, type=str, help='Second FASTQ file to check')
     argv = parser.parse_args()
@@ -22,9 +22,8 @@ def main():
             sys.exit()
         elif line1[0] != line2[0]:
             print('FASTQ pairing mismatch detected:')
-            print('%s: line %s' % (fq1.filename, fq1.pos))
-            print('%s: line %s' % (fq2.filename, fq2.pos))
-            print('%s does not match %s' % (line1[0], line2[0]))
+            print('%s:%s readid %s' % (fq1.filename, fq1.lineno, line1[0]), end='')
+            print('%s:%s readid %s' % (fq2.filename, fq2.lineno, line2[0]), end='')
             sys.exit(1)
 
 

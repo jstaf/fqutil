@@ -1,33 +1,30 @@
 # fqutils
 
-A couple Python-based FASTQ QC tools that perform common operations like trimming poor quality bases calls from reads, filtering out bad reads, and re-pair paired-end reads after QC (when bad reads/adapters get filtered out by QC, the reads that no longer have a pair need to be separated out). 
+A couple Python-based FASTQ QC tools that perform several useful file handling operations, 
+notably check read-pairing, repair read-pairing, and other stuff like trim and filter reads. 
+Notably, `fq-repair` is the only tool (to my knowledge) 
+that can successfully re-pair reads from gzipped FASTQ input.
 
-Requires Python 3.4, but otherwise can be invoked from the command-line like any other program. You can install this package using `pip`: `pip install .`. To run tests: `pytest`
+## Installation and tests
 
-==============================================
+To install as a python package (can also just be run as-is after cloning this repository): `pip install .`  
 
-**fq-repair** - Re-pair the reads in two FASTQ files if reads have been filtered out or otherwise reordered. It's basically a Python version of [cmpfastq.pl](http://compbio.brc.iop.kcl.ac.uk/software/cmpfastq.php), except that it actually works with the latest Illumina format and can handle gzipped files.
-  
-This creates two output files (two additional files if unique reads are kept):
-  +  fastq1_common.fastq[.gz] - reads that were present in both files (and in the correct order too!)
-  +  fastq2_common.fastq[.gz] - reads that were present in both files
-  +  fastq1_unique.fastq[.gz] - reads present only in fastq1 (only if invoked with `-u`)
-  +  fastq2_unique.fastq[.gz] - reads present only in fastq2 (only if invoked with `-u`)
-  
-The unique reads can be aligned as single-end reads depending on your aligner.
+To run tests: `pytest`
 
-==============================================
+##Current scripts
+
+Run `commandname --help` for individual usage instructions.
+Sample commands can also be found in the `tests/` directory.
+
+**fq-repair** - Re-pair the reads in two FASTQ files if reads have been filtered out or otherwise reordered. 
+
+**fq-checkpair** - Check if two FASTQ files are properly paired and highlight errors.
+
+**fq-zwc** - Just a wrapper around `wc -l` for gzipped files.
 
 **fq-filter** - Remove all reads in a FASTQ file below a certain Phred quality score. 
 
-  Usage: fq-filter [-q \<minReadQual\>] [-o \<outputfile\>] \<inputFile\>
-  
-  Default value for -q is 30. Output is to console unless you specify a value for -o
-  
-===========================================  
-  
+**fq-lenfilter** - Remove reads above or below a certain length.
+
 **fq-trimmer** - Starting from both ends, trim a read so that bases below a certain Phred quality score are removed. If the entire read sucks (and there's not a single base above the minimum q score), the entire read is removed.
 
-  Usage: fq-trimmer [-q \<minReadQual\>] [-o \<outputfile\>] \<inputFile\>  
-  
-  Default value for -q is 30. Output is to console unless you specify a value for -o

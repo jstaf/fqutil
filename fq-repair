@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 
-import os
-import sys
-import re
-import gzip
 import argparse
 
-import fqutils.util as util
+from fqutils.fastq import Fastq
+from fqutils.util import prefix_extension
 
 def main():
     parser = argparse.ArgumentParser(
@@ -53,10 +50,10 @@ def pair_reads(fastq1, fastq2, keep_unique=False):
     fastq2_orig = Fastq(fastq2)
 
     # output file handles
-    fastq1_common = Fastq(util.prefix_extension(fastq1, '_common'), 'w')
-    fastq2_common = Fastq(util.prefix_extension(fastq2, '_common'), 'w')
+    fastq1_common = Fastq(prefix_extension(fastq1, '_common'), 'w')
+    fastq2_common = Fastq(prefix_extension(fastq2, '_common'), 'w')
     if keep_unique:
-        fastq1_unique = Fastq(util.prefix_extension(fastq1, '_unique'), 'w')
+        fastq1_unique = Fastq(prefix_extension(fastq1, '_unique'), 'w')
 
     while True:
         read1 = fastq1_orig.get_read()
@@ -80,7 +77,7 @@ def pair_reads(fastq1, fastq2, keep_unique=False):
 
     if keep_unique:
         # all remaining keys in dictionary are the unique reads for fastq2
-        with Fastq(util.prefix_extension(fastq1, '_common'), 'w') as fastq2_unique:
+        with Fastq(prefix_extension(fastq2, '_unique'), 'w') as fastq2_unique:
             for remaining in idx:
                 fastq2_orig.seek(idx[remaining])
                 read = fastq2_orig.get_read()
@@ -88,75 +85,5 @@ def pair_reads(fastq1, fastq2, keep_unique=False):
         fastq1_orig.close()
         fastq2_orig.close()
 
-
-class Fastq:
-    """
-    Helper class to rapidly parse fastq/gz as raw text. 
-    (Biopython's Bio.SeqIO.index() does not support gzip compression :'( )
-    """
-
-    pos = 0
-
-    def __init__(self, filename, mode='r'):
-        if 'r' in mode and not os.path.isfile(filename):
-            sys.exit('%s is not a valid file path.' % filename)
-        self.filename = filename
-        self.mode = mode
-        self.handle = self.open()
-
-    
-    def __enter__(self):
-        return self
-
-    
-    def __exit__(self, typee, value, traceback):
-        self.close()
-
-    
-    def is_gzip(filename):
-        return len(re.findall(r'.gz$', filename)) > 0
-
-
-    def open(self):
-        """
-        Autodetect extension and return filehandle.
-        """
-        if Fastq.is_gzip(self.filename):
-            self.mode = self.mode + 'b'
-            return gzip.open(self.filename, mode=self.mode)
-        else:
-            return open(self.filename, self.mode)
-
-
-    def close(self):
-        self.handle.close()
-
-
-    def get_read(self):
-        """Get a fastq read. Returns None at EOF"""
-        self.pos = self.handle.tell()
-        read = []
-        for i in range(4):  # assumes 4-line FASTQ
-            line = self.handle.readline().decode()
-            if line == '' or line == b'':
-                return None  # EOF
-            read.append(line)
-        return read
-
-
-    def writelines(self, read):
-        if Fastq.is_gzip(self.filename):
-            self.handle.writelines([b.encode() for b in read])
-        else:
-            self.handle.writelines(read)
-
-    
-    def seek(self, position):
-        """Jump to a particular file position"""
-        self.handle.seek(position)
-
-
-
 if __name__ == '__main__':
     main()
-

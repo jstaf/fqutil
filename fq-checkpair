@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+
+import sys
+import argparse
+
+from fqutils.fastq import Fastq
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Check that two FASTQ read files are properly paired. Exits with offending FASTQ line number if check fails.")
+    parser.add_argument('fastq1', nargs=1, type=str, help='First FASTQ file to check')
+    parser.add_argument('fastq2', nargs=1, type=str, help='Second FASTQ file to check')
+    argv = parser.parse_args()
+
+    fq1 = Fastq(argv.fastq1[0])
+    fq2 = Fastq(argv.fastq2[0])
+    while True:
+        line1 = fq1.get_read()
+        line2 = fq2.get_read()
+        if line1 is None or line2 is None:
+            print('All reads properly paired. :)')
+            sys.exit()
+        elif line1[0] != line2[0]:
+            print('FASTQ pairing mismatch detected:')
+            print('%s: line %s' % (fq1.filename, fq1.pos))
+            print('%s: line %s' % (fq2.filename, fq2.pos))
+            print('%s does not match %s' % (line1[0], line2[0]))
+            sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()

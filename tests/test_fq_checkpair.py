@@ -3,11 +3,11 @@
 import os
 
 def test_are_mismatched():
-    assert os.system('./fq-checkpair tests/r1.fastq tests/r2.fastq') == 256
+    assert not os.system('./fq-checkpair tests/r1.fastq tests/r2.fastq') == 0
 
 
 def test_are_mismatched_gz():
-    assert os.system('./fq-checkpair tests/r1.fastq.gz tests/r2.fastq.gz') == 256
+    assert not os.system('./fq-checkpair tests/r1.fastq.gz tests/r2.fastq.gz') == 0
 
 
 def test_are_matched():

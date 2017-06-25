@@ -17,7 +17,7 @@ def test_repair():
     assert os.system('./fq-checkpair tests/r1_common.fastq tests/r2_common.fastq') == 0
     assert os.path.isfile('tests/r1_unique.fastq')
     assert os.path.isfile('tests/r2_unique.fastq')
-    assert os.system('./fq-checkpair tests/r1_unique.fastq tests/r2_unique.fastq') == 256
+    assert not os.system('./fq-checkpair tests/r1_unique.fastq tests/r2_unique.fastq') == 0
 
 
 def test_repair_gz():
@@ -28,4 +28,4 @@ def test_repair_gz():
     assert os.system('./fq-checkpair tests/r1_common.fastq.gz tests/r2_common.fastq.gz') == 0
     assert os.path.isfile('tests/r1_unique.fastq.gz')
     assert os.path.isfile('tests/r2_unique.fastq.gz')
-    assert os.system('./fq-checkpair tests/r1_unique.fastq.gz tests/r2_unique.fastq.gz') == 256
+    assert not os.system('./fq-checkpair tests/r1_unique.fastq.gz tests/r2_unique.fastq.gz') == 0

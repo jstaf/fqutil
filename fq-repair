@@ -11,14 +11,10 @@ def main():
     parser.add_argument('-v', '--version', action='version', version='fq-repair version 1.0')
     parser.add_argument('-u', '--keep-unique', default=False, const=True, action='store_const',
             help='Keep reads without a corresponding match. Unique reads are output to a separate file (filename_unique.fastq).')
-    parser.add_argument('-1', '--output1', nargs=1, type=str,
-            help='Output for first FASTQ file after re-pairing (defaults to "filename_common.fastq"). May be gzipped.')
-    parser.add_argument('-2', '--output2', nargs=1, type=str,
-            help='Output for second FASTQ file after re-pairing (defaults to "filename_common.fastq"). May be gzipped.')
     parser.add_argument('fastq1', nargs=1, type=str,
-            help='First FASTQ file to be re-paired.')
+            help='First FASTQ file to be re-paired. May be gzipped.')
     parser.add_argument('fastq2', nargs=1, type=str,
-            help='Second FASTQ file to be re-paired.')
+            help='Second FASTQ file to be re-paired. May be gzipped.')
     argv = parser.parse_args()
 
     fq1 = Fastq(argv.fastq1[0])
@@ -40,6 +36,9 @@ def pair_reads(fastq1, fastq2, keep_unique=False):
     if keep_unique:
         fastq1_unique = Fastq(util.prefix_extension(fastq1.filename, '_unique'), 'w')
 
+    # because stats are nice
+    kept = 0
+
     # proceed through first file and look for matches against our index.
     while True:
         read1 = fastq1.get_read()
@@ -52,6 +51,7 @@ def pair_reads(fastq1, fastq2, keep_unique=False):
             fastq2.seek(idx.pop(readid))
             read2 = fastq2.get_read()
             fastq2_common.writelines(read2)
+            kept += 1
         elif keep_unique:
             # write out to unique file for fastq1
             fastq1_unique.writelines(read1)
@@ -66,6 +66,12 @@ def pair_reads(fastq1, fastq2, keep_unique=False):
                 fastq2.seek(idx[remaining])
                 read = fastq2.get_read()
                 fastq2_unique.writelines(read)
+    
+    print(r'%s: %s unique reads identified out of a total of %s (%.1f%%)' \
+        % (fastq1.filename, fastq1.lineno - kept, fastq1.lineno, kept / fastq1.lineno * 100.))
+    print(r'%s: %s unique reads identified out of a total of %s (%.1f%%)' \
+        % (fastq2.filename, fastq2.lineno - kept, fastq2.lineno, kept / fastq2.lineno * 100.))
+    print('%s reads paired' % kept)
 
 if __name__ == '__main__':
     main()

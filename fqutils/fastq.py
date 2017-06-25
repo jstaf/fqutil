@@ -12,6 +12,7 @@ class Fastq:
 
     pos = 0
     lineno = 0
+    tempfilename = None
 
     def __init__(self, filename, mode='r'):
         if 'r' in mode and not os.path.isfile(filename):
@@ -19,7 +20,7 @@ class Fastq:
         self.filename = filename
         self.mode = mode
         self.is_gzip = util.is_gzip(self.filename)
-        self.handle = self.open()
+        self.handle = self._open()
 
     
     def __enter__(self):
@@ -30,7 +31,7 @@ class Fastq:
         self.close()
 
 
-    def open(self):
+    def _open(self):
         """
         Autodetect extension and return filehandle.
         """
@@ -42,7 +43,10 @@ class Fastq:
 
 
     def close(self):
+        """Close file handles and delete tempspace if it exists."""
         self.handle.close()
+        if self.tempfilename is not None:
+            os.unlink(self.tempfilename)
 
 
     def get_read(self):
@@ -61,6 +65,7 @@ class Fastq:
 
 
     def writelines(self, read):
+        """Same thing as the "normal" writelines"""
         if self.is_gzip:
             read = [b.encode() for b in read]
         self.handle.writelines(read)
@@ -69,3 +74,35 @@ class Fastq:
     def seek(self, position):
         """Jump to a particular file position"""
         self.handle.seek(position)
+        self.pos = position
+
+
+    def index(self):
+        """
+        Create a dictionary of readids and their seek positions.
+        Autodumps gzipped files to raw fastq to allow random access.
+        """
+        
+        self.seek(0)
+        if self.is_gzip:
+            # initialize raw fastq temp space
+            self.tempfilename = self.filename + '.temp'
+            temp = open(self.tempfilename, mode='w+')
+        
+        # build index
+        idx = {}
+        while True:
+            read = self.get_read()
+            if read is None:
+                break
+            else:
+                idx[read[0]] = self.pos
+                if self.is_gzip:
+                    temp.writelines(read)
+        if self.is_gzip:
+            # the tempfile is now used in place of original file handle
+            self.handle.close()
+            self.handle = temp
+            self.seek(0)
+            self.lineno = 0
+        return idx

@@ -22,71 +22,51 @@ def main():
             help='Second FASTQ file to be re-paired.')
     argv = parser.parse_args()
 
-    fq1 = argv.fastq1[0]
-    fq2 = argv.fastq2[0]
-
-    if not util.is_gzip(fq1) and not util.is_gzip(fq2):
-        pair_reads(fq1, fq2, keep_unique=argv.keep_unique)
-    else:
-        sys.exit('gzip currently not supported')
-
-
-def index(filename):
-    """Create a dictionary of readids and their seek positions."""
-    
-    idx = {}
-    with Fastq(filename) as fq:
-        while True:
-            read = fq.get_read()
-            if read is None:
-                break
-            else:
-                idx[read[0]] = fq.pos
-    return idx
+    fq1 = Fastq(argv.fastq1[0])
+    fq2 = Fastq(argv.fastq2[0])
+    pair_reads(fq1, fq2, keep_unique=argv.keep_unique)
+    fq1.close()
+    fq2.close()
 
 
 def pair_reads(fastq1, fastq2, keep_unique=False):
-    idx = index(fastq2)
+    """Read-pairing algorithm"""
 
-    # input file handles
-    fastq1_orig = Fastq(fastq1)
-    fastq2_orig = Fastq(fastq2)
+    # index the second file for random-access
+    idx = fastq2.index()
 
-    # output file handles
-    fastq1_common = Fastq(util.prefix_extension(fastq1, '_common'), 'w')
-    fastq2_common = Fastq(util.prefix_extension(fastq2, '_common'), 'w')
+    # open output file handles
+    fastq1_common = Fastq(util.prefix_extension(fastq1.filename, '_common'), 'w')
+    fastq2_common = Fastq(util.prefix_extension(fastq2.filename, '_common'), 'w')
     if keep_unique:
-        fastq1_unique = Fastq(util.prefix_extension(fastq1, '_unique'), 'w')
+        fastq1_unique = Fastq(util.prefix_extension(fastq1.filename, '_unique'), 'w')
 
+    # proceed through first file and look for matches against our index.
     while True:
-        read1 = fastq1_orig.get_read()
+        read1 = fastq1.get_read()
         if read1 is None:
             break
         readid = read1[0]
         if readid in idx.keys():
-            # write both reads out to common files, remove key from index
+            # match found in index - dump both reads to disk and remove from index.
             fastq1_common.writelines(read1)
-            fastq2_orig.seek(idx.pop(readid))
-            read2 = fastq2_orig.get_read()
+            fastq2.seek(idx.pop(readid))
+            read2 = fastq2.get_read()
             fastq2_common.writelines(read2)
         elif keep_unique:
             # write out to unique file for fastq1
             fastq1_unique.writelines(read1)
-    # close file handles
     fastq1_common.close()
     fastq2_common.close()
-    if keep_unique:
-        fastq1_unique.close()
 
     if keep_unique:
+        fastq1_unique.close()
         # all remaining keys in dictionary are the unique reads for fastq2
-        with Fastq(util.prefix_extension(fastq2, '_unique'), 'w') as fastq2_unique:
+        with Fastq(util.prefix_extension(fastq2.filename, '_unique'), 'w') as fastq2_unique:
             for remaining in idx:
-                fastq2_orig.seek(idx[remaining])
-                read = fastq2_orig.get_read()
+                fastq2.seek(idx[remaining])
+                read = fastq2.get_read()
                 fastq2_unique.writelines(read)
-        fastq1_orig.close()
-        fastq2_orig.close()
 
 if __name__ == '__main__':
     main()

@@ -5,13 +5,15 @@ notably check read-pairing, repair read-pairing, and other stuff like trim and f
 Notably, `fq-repair` is the only tool (to my knowledge) 
 that can successfully re-pair reads from gzipped FASTQ input.
 
+
 ## Installation and tests
 
 To install as a python package (can also just be run as-is after cloning this repository): `pip install .`  
 
 To run tests: `pytest`
 
-##Current scripts
+
+## Current scripts
 
 Run `commandname --help` for individual usage instructions.
 Sample commands can also be found in the `tests/` directory.

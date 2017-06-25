@@ -14,4 +14,5 @@ __pycache__/
 /*.fastq
 /*.gz
 tests/*_common.fastq*
+tests/*_unique.fastq*
 

@@ -9,7 +9,10 @@ Input is assumed to be 4-line FASTQ and may be gzipped.
 
 ## Installation and tests
 
-To install as a python package (can also just be run as-is after cloning this repository): `pip install .`  
+`fqutils` has no dependencies aside from the Python 3 standard library 
+(if this Python is installed, things will work).
+Just clone the repository with with `git clone https://github.com/jstaf/fqutils.git`.
+Clever users will also note that this repository can be installed as a python package with `pip install .`  
 
 To run tests: `pytest`
 

@@ -1,71 +1,55 @@
 #!/usr/bin/env python3
 
-import sys
-import getopt
-import os
-from fqutils.FASTQParser import *
+import argparse
 
-helpString = '\nUsage:\n\nFASTQTrimmer_.py [-q <minReadQual>] [-o <outputfile>] <inputFile>\n'
+from fqutils.fastq import Fastq, encoding2num
 
 
-def main(argv):
-    # parse arguments
-    opts, args = getopt.getopt(argv[1:-1], 'ho:q:', longopts = ['help'])
+def main():
+    parser = argparse.ArgumentParser(
+        description='Trim both ends of a FASTQ by phred score.'
+        'Resulting reads shorter than a minimum length are discarded')
+    parser.add_argument('input', default=None, nargs='?', type=str, 
+        help='Input FASTQ (can be gzipped). '
+        'If no argument is supplied, reads will be read from stdin.')
+    parser.add_argument('-o', '--output', default=None, nargs=1, type=str, 
+        help='Output file to write. Format is autodetected from file extension. '
+        'If no argument is supplied, reads will be written to stdout.')
+    parser.add_argument('-q', '--min-qual', default=30, nargs=1, type=int,
+        help='Minimum phred score.')
+    parser.add_argument('-m', '--min-length', default=30, nargs=1, type=int,
+        help='Minimum read length after trimming.')
+    argv = parser.parse_args()
 
-    qmin = 30
-    outputName = ''
-
-    for option, val in opts:
-        if option in ['-h', '--help']:
-            print(helpString)
-            sys.exit()
-        elif option == '-o':
-            outputName = val
-        elif option == '-q':
-            qmin = float(val)
-        else:
-            sys.exit('Unsupported parameter.')
-    # deal with invalid paths
-    if (len(argv) == 1) or (not os.path.isfile(argv[-1])):
-        print(helpString)
-        sys.exit('Valid input file required.')
-    else:
-        inputName = argv[-1]
-
-    parser = FASTQParser(inputName)
-    if outputName != '':
-        outFile = open(outputName, 'w')
+    fastq_in = Fastq(argv.input[0])
+    fastq_out = Fastq(argv.output[0])
+    min_qual = argv.min_qual
+    min_len = argv.min_len
+    
     # read file and print back lines that pass the filter
     while True:
-        read = parser.nextRead()
-        # stop at EOF
-        if read['quals'] == '':
-            break
-        numQual = encoding2num(read['quals'], parser.encoding)
-        # get first index of acceptable quality
+        read = fastq_in.get_read()
+        if read is None:
+            break  # EOF
+        qual = encoding2num(read[3], parser.encoding)
+        
+        # get indices of acceptable quality
         start = -1
-        for baseq in numQual:
+        for q in qual:
             start += 1
-            if baseq >= qmin:
+            if q >= min_qual:
                 break
-        # now get last index
-        end = -1
-        for baseq in reversed(numQual):
-            end += 1
-            if baseq >= qmin:
+        end = 0
+        for q in reversed(qual):
+            end -= 1
+            if q >= min_qual:
                 break
-        # only print back reads where there was at least one decent base call
-        end = len(numQual) - end - 1
-        if start < end:
-            if outputName == '':
-                print(read['header'], read['bases'][start:end], '\n', read['qheader'], read['quals'][start:end], '\n',\
-                      sep='', end='')
-            else:
-                outFile.writelines([read['header'], read['bases'][start:end], '\n', \
-                                    read['qheader'], read['quals'][start:end], '\n'])
-    parser.file.close()
-    if outputName != '':
-        outFile.close()
+        if len(qual) - start + end > min_len:
+            fastq_out.writelines([
+                read[0], read[1][start:end] + '\n', 
+                read[2], read[3][start:end] + '\n'])
+    fastq_in.close()
+    fastq_out.close()
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()

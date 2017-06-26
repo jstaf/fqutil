@@ -18,15 +18,14 @@ To run tests: `pytest`
 Run `commandname --help` for individual usage instructions.
 Sample commands can also be found in the `tests/` directory.
 
-**fq-repair** - Re-pair the reads in two FASTQ files if reads have been filtered out or otherwise reordered. 
+* **fq-repair** - Re-pair the reads in two FASTQ files if reads have been filtered out or otherwise reordered. 
 
-**fq-checkpair** - Check if two FASTQ files are properly paired and highlight errors.
+* **fq-checkpair** - Check if two FASTQ files are properly paired and highlight errors.
 
-**fq-zwc** - Just a wrapper around `wc -l` for gzipped files.
+* **fq-zwc** - Just a wrapper around `wc -l` for gzipped files.
 
-**fq-filter** - Remove all reads in a FASTQ file below a certain Phred quality score. 
+* **fq-filter** - Remove all reads in a FASTQ file below a certain Phred quality score. 
 
-**fq-lenfilter** - Remove reads above or below a certain length.
+* **fq-lenfilter** - Remove reads above or below a certain length.
 
-**fq-trimmer** - Starting from both ends, trim a read so that bases below a certain Phred quality score are removed. If the entire read sucks (and there's not a single base above the minimum q score), the entire read is removed.
-
+* **fq-trim** - Starting from both ends, trim a read so that bases below a certain Phred quality score are removed. Resulting reads shorter than a minimum length are removed.

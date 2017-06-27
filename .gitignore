@@ -13,8 +13,7 @@ archive/
 *.swp
 *.temp
 
-/*.fastq
-/*.gz
 tests/*_common.fastq*
 tests/*_unique.fastq*
+tests/outdir/
 

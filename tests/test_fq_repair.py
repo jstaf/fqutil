@@ -1,6 +1,7 @@
 """Check that reads are being properly repaired"""
 
 import os
+import shutil
 import glob
 
 def delete_test_files(extension):
@@ -29,3 +30,12 @@ def test_repair_gz():
     assert os.path.isfile('tests/r1_unique.fastq.gz')
     assert os.path.isfile('tests/r2_unique.fastq.gz')
     assert not os.system('./fq-checkpair tests/r1_unique.fastq.gz tests/r2_unique.fastq.gz') == 0
+
+def test_repair_outdir():
+    shutil.rmtree('./tests/outdir', ignore_errors=True)
+    assert os.system('./fq-repair -o tests/outdir/works -u tests/r1.fastq tests/r2.fastq') == 0
+    assert os.path.isfile('tests/outdir/works/r1_common.fastq')
+    assert os.path.isfile('tests/outdir/works/r2_common.fastq')
+    assert os.path.isfile('tests/outdir/works/r1_unique.fastq')
+    assert os.path.isfile('tests/outdir/works/r2_unique.fastq')
+

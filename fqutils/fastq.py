@@ -175,6 +175,9 @@ class Fastq:
             self.handle.close()
             self.handle = temp
             self.seek(0)
-            self.lineno = 0
             self.is_gzip = False
+
+        # indexing should not count lines in file
+        self.lineno = 0
         return idx
+

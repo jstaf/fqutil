@@ -77,10 +77,10 @@ def pair_reads(fastq1, fastq2, keep_unique=False, output_dir=None):
                 read = fastq2.get_read()
                 fastq2_unique.writelines(read)
     
-    print(r'%s: %s unique reads identified out of a total of %s (%.1f%%)' \
-        % (fastq1.filename, fastq1.lineno - kept, fastq1.lineno, kept / fastq1.lineno * 100.))
-    print(r'%s: %s unique reads identified out of a total of %s (%.1f%%)' \
-        % (fastq2.filename, fastq2.lineno - kept, fastq2.lineno, kept / fastq2.lineno * 100.))
+    print(r'%s: %s unique reads identified out of a total of %s (%.1f%% unique)' \
+        % (fastq1.filename, fastq1.lineno - kept, fastq1.lineno, 100 - (kept / fastq1.lineno * 100.)))
+    print(r'%s: %s unique reads identified out of a total of %s (%.1f%% unique)' \
+        % (fastq2.filename, fastq2.lineno - kept, fastq2.lineno, 100 - (kept / fastq2.lineno * 100.)))
     print('%s reads paired' % kept)
 
 if __name__ == '__main__':

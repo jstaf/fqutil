@@ -35,6 +35,7 @@ def get_line_encoding(quals):
             encoding = 'phred64_1.3'
         else:
             encoding = 'phred64_1.5'
+
     return encoding
 
 
@@ -61,8 +62,6 @@ class Fastq:
     tempfilename = None
 
     def __init__(self, filename, mode='r'):
-        if 'r' in mode and not os.path.isfile(filename):
-            sys.exit('%s is not a valid file path.' % filename)
         self.filename = filename
         self.mode = mode
         self.is_gzip = fqutil.is_gzip(self.filename)
@@ -107,9 +106,12 @@ class Fastq:
             line = self.handle.readline()
             if self.is_gzip:
                 line = line.decode()
-            if line == '' or line == b'':
+            
+            if line == '':
                 return None  # EOF
+
             read.append(line)
+
         self.lineno += 1
         return read
 
@@ -117,6 +119,7 @@ class Fastq:
     def get_encoding(self):
         '''
         Determine encoding by iterating through first 10000 read quals.
+        Will default to phred64_1.5 if you there aren't enough reads.
         '''
         startpos = self.pos
         self.seek(0)
@@ -126,7 +129,8 @@ class Fastq:
             if read is None:
                 break
             else:
-                enclist.append(read[2])
+                enclist.append(get_line_encoding(read[2]))
+
         self.seek(startpos)
 
         # determine file encoding by looking for the presence of the most to least
@@ -149,6 +153,7 @@ class Fastq:
         '''
         if self.is_gzip:
             read = [b.encode() for b in read]
+
         self.handle.writelines(read)
 
     
@@ -182,6 +187,7 @@ class Fastq:
                 idx[read[0]] = self.pos
                 if self.is_gzip:
                     temp.writelines(read)
+
         if self.is_gzip:
             # the tempfile is now used in place of original file handle
             self.handle.close()

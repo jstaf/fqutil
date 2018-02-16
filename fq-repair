@@ -67,6 +67,7 @@ def pair_reads(fastq1, fastq2, keep_unique=False, output_dir=None):
         elif keep_unique:
             # write out to unique file for fastq1
             fastq1_unique.writelines(read1)
+            
     fastq1_common.close()
     fastq2_common.close()
 

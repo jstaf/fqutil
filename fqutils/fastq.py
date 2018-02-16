@@ -20,10 +20,10 @@ offsets = {'sanger': 0,
 
 
 def _get_line_encoding(quals):
-    """
+    '''
     Determine quality encoding of line. 
     It is not sufficient to run this on a single line to determine a file's encoding.
-    """
+    '''
     if '#' in quals:
         if 'J' in quals:
             encoding = 'phred33'
@@ -40,7 +40,9 @@ def _get_line_encoding(quals):
 
 
 def encoding2num(quals, encoding):
-    """Convert FASTQ quals to numeric Q values"""
+    '''
+    Convert FASTQ quals to numeric Q values
+    '''
     quals = quals.replace('\n', '')
     numeric_quals = []
     for char in quals:
@@ -49,10 +51,10 @@ def encoding2num(quals, encoding):
 
 
 class Fastq:
-    """
+    '''
     Helper class to rapidly parse fastq/gz as raw text. 
     (Biopython's Bio.SeqIO.index() does not support gzip compression :'( )
-    """
+    '''
 
     pos = 0
     lineno = 0
@@ -76,9 +78,9 @@ class Fastq:
 
 
     def _open(self):
-        """
+        '''
         Autodetect extension and return filehandle.
-        """
+        '''
         if self.is_gzip:
             self.mode = self.mode + 'b'
             return gzip.open(self.filename, mode=self.mode)
@@ -87,14 +89,18 @@ class Fastq:
 
 
     def close(self):
-        """Close file handles and delete tempspace if it exists."""
+        '''
+        Close file handles and delete tempspace if it exists.
+        '''
         self.handle.close()
         if self.tempfilename is not None:
             os.unlink(self.tempfilename)
 
 
     def get_read(self):
-        """Get a fastq read. Returns None at EOF"""
+        '''
+        Get a fastq read. Returns None at EOF.
+        '''
         self.pos = self.handle.tell()
         read = []
         for i in range(4):  # assumes 4-line FASTQ
@@ -109,7 +115,9 @@ class Fastq:
 
     
     def get_encoding(self):
-        """Determine encoding by iterating through first 10000 read quals."""
+        '''
+        Determine encoding by iterating through first 10000 read quals.
+        '''
         startpos = self.pos
         self.seek(0)
         enclist = []
@@ -136,23 +144,27 @@ class Fastq:
 
 
     def writelines(self, read):
-        """Same thing as the "normal" writelines"""
+        '''
+        Same thing as the "normal" writelines.
+        '''
         if self.is_gzip:
             read = [b.encode() for b in read]
         self.handle.writelines(read)
 
     
     def seek(self, position):
-        """Jump to a particular file position"""
+        '''
+        Jump to a particular file position.
+        '''
         self.handle.seek(position)
         self.pos = position
 
 
     def index(self):
-        """
+        '''
         Create a dictionary of readids and their seek positions.
         Autodumps gzipped files to raw fastq to allow random access.
-        """
+        '''
         
         self.seek(0)
         if self.is_gzip:

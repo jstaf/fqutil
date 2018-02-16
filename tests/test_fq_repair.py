@@ -13,10 +13,17 @@ def delete_test_files(extension):
         os.unlink(f)
 
 
+def test_post_py34_fix():
+    '''
+    Do we avoid the post exist_ok removal without errors.
+    '''
+    assert os.system('cd tests && ../fq-repair -u r1.fastq r2.fastq') == 0
+
+
 @pytest.fixture
 def test_repair_mixed():
     '''
-    Test normal functionality when reads 
+    Test normal functionality when reads are both common and unique.
     '''
 
     delete_test_files('.fastq')

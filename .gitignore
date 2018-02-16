@@ -3,9 +3,10 @@
 .eggs/
 .cache/
 .pytest_cache/
-archive/
-__pycache__/
 *.egg-info/
+archive/
+dist/
+__pycache__/
 
 *.html
 *.zip

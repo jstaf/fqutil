@@ -3,7 +3,7 @@ import sys
 import gzip
 
 import numpy as np
-import fqutils.util as util
+import fqutil
 
 # encoding symbols
 encodings = {'sanger': '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHI',  # (0 - 40)
@@ -65,7 +65,7 @@ class Fastq:
             sys.exit('%s is not a valid file path.' % filename)
         self.filename = filename
         self.mode = mode
-        self.is_gzip = util.is_gzip(self.filename)
+        self.is_gzip = fqutil.is_gzip(self.filename)
         self.handle = self._open()
 
     

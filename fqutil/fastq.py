@@ -2,7 +2,6 @@ import os
 import sys
 import gzip
 
-import numpy as np
 import fqutil
 
 # encoding symbols
@@ -46,8 +45,9 @@ def encoding2num(quals, encoding):
     quals = quals.replace('\n', '')
     numeric_quals = []
     for char in quals:
-        numeric_quals.append(encodings[encoding].find(char))
-    return np.array(numeric_quals) + offsets[encoding]
+        numeric_quals.append(encodings[encoding].find(char) + offsets[encoding])
+
+    return numeric_quals
 
 
 class Fastq:

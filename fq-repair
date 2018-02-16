@@ -28,7 +28,9 @@ def main():
 
 
 def pair_reads(fastq1, fastq2, keep_unique=False, output_dir=None):
-    """Read-pairing algorithm"""
+    '''
+    Read-pairing algorithm
+    '''
 
     # handle output directory properly
     if output_dir is None:
@@ -77,11 +79,21 @@ def pair_reads(fastq1, fastq2, keep_unique=False, output_dir=None):
                 read = fastq2.get_read()
                 fastq2_unique.writelines(read)
     
-    print(r'%s: %s unique reads identified out of a total of %s (%.1f%% unique)' \
-        % (fastq1.filename, fastq1.lineno - kept, fastq1.lineno, 100 - (kept / fastq1.lineno * 100.)))
-    print(r'%s: %s unique reads identified out of a total of %s (%.1f%% unique)' \
-        % (fastq2.filename, fastq2.lineno - kept, fastq2.lineno, 100 - (kept / fastq2.lineno * 100.)))
+    print_stats(fastq1, kept)
+    print_stats(fastq2, kept)
     print('%s reads paired' % kept)
+
+
+def print_stats(fastq, kept):
+    n_uniq = fastq.lineno - kept
+    if kept == 0:
+        p_uniq = 100 - (kept / fastq.lineno * 100.)
+    else:
+        p_uniq = 100
+
+    print('{}: {} unique reads identified out of a total of {} ({:.1f} unique)'
+        .format(fastq.filename, n_uniq, fastq.lineno, p_uniq))
+
 
 if __name__ == '__main__':
     main()

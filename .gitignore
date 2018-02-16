@@ -2,9 +2,10 @@
 .vscode/
 .eggs/
 .cache/
-*.egg-info/
-__pycache__/
+.pytest_cache/
 archive/
+__pycache__/
+*.egg-info/
 
 *.html
 *.zip
@@ -12,6 +13,7 @@ archive/
 *.cmd
 *.swp
 *.temp
+*.pyc
 
 tests/*_common.fastq*
 tests/*_unique.fastq*

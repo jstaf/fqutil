@@ -3,7 +3,7 @@
 import sys
 import argparse
 
-from fqutils.fastq import Fastq
+from fqutil import Fastq
 
 def main():
     parser = argparse.ArgumentParser(
@@ -22,8 +22,8 @@ def main():
             sys.exit()
         elif line1[0] != line2[0]:
             print('FASTQ pairing mismatch detected:')
-            print('%s:%s readid %s' % (fq1.filename, fq1.lineno * 4 - 3, line1[0]), end='')
-            print('%s:%s readid %s' % (fq2.filename, fq2.lineno * 4 - 3, line2[0]), end='')
+            print('{}:{} readid {}'.format(fq1.filename, fq1.lineno * 4 - 3, line1[0]), end='')
+            print('{}:{} readid {}'.format(fq2.filename, fq2.lineno * 4 - 3, line2[0]), end='')
             sys.exit(1)
 
 

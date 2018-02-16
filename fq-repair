@@ -3,13 +3,11 @@
 import os
 import argparse
 
-from fqutils.fastq import Fastq
-import fqutils.util as util
+from fqutil import Fastq, prefix_extension
 
 def main():
     parser = argparse.ArgumentParser(
             description='Re-pair reads from discordant FASTQ files (for instance, after filtering reads by quality).')
-    parser.add_argument('-v', '--version', action='version', version='fq-repair version 1.0')
     parser.add_argument('-u', '--keep-unique', default=False, const=True, action='store_const',
             help='Keep reads without a corresponding match. Unique reads are output to a separate file (filename_unique.fastq).')
     parser.add_argument('-o', '--output-dir', nargs=1, default=[None], type=str,
@@ -43,10 +41,10 @@ def pair_reads(fastq1, fastq2, keep_unique=False, output_dir=None):
     idx = fastq2.index()
 
     # open output file handles
-    fastq1_common = Fastq(util.prefix_extension(outfile1, '_common'), 'w')
-    fastq2_common = Fastq(util.prefix_extension(outfile2, '_common'), 'w')
+    fastq1_common = Fastq(prefix_extension(outfile1, '_common'), 'w')
+    fastq2_common = Fastq(prefix_extension(outfile2, '_common'), 'w')
     if keep_unique:
-        fastq1_unique = Fastq(util.prefix_extension(outfile1, '_unique'), 'w')
+        fastq1_unique = Fastq(prefix_extension(outfile1, '_unique'), 'w')
 
     # because stats are nice
     kept = 0
@@ -73,7 +71,7 @@ def pair_reads(fastq1, fastq2, keep_unique=False, output_dir=None):
     if keep_unique:
         fastq1_unique.close()
         # all remaining keys in dictionary are the unique reads for fastq2
-        with Fastq(util.prefix_extension(outfile2, '_unique'), 'w') as fastq2_unique:
+        with Fastq(prefix_extension(outfile2, '_unique'), 'w') as fastq2_unique:
             for remaining in idx:
                 fastq2.seek(idx[remaining])
                 read = fastq2.get_read()

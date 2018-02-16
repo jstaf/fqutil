@@ -2,7 +2,7 @@
 
 import argparse
 
-from fqutils.fastq import Fastq, encoding2num
+from fqutil import Fastq, encoding2num
 
 
 def main():

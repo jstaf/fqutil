@@ -19,7 +19,7 @@ offsets = {'sanger': 0,
            'phred33': 0}
 
 
-def _get_line_encoding(quals):
+def get_line_encoding(quals):
     '''
     Determine quality encoding of line. 
     It is not sufficient to run this on a single line to determine a file's encoding.

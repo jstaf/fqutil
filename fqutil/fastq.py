@@ -57,14 +57,17 @@ class Fastq:
     (Biopython's Bio.SeqIO.index() does not support gzip compression :'( )
     '''
 
-    pos = 0
-    lineno = 0
-    tempfilename = None
-
     def __init__(self, filename, mode='r'):
+        self.pos = 0
+        self.lineno = 0
+        self.tempfilename = None
+        
         self.filename = filename
-        self.mode = mode
         self.is_gzip = fqutil.is_gzip(self.filename)
+        self.mode = mode
+        if self.is_gzip:
+            self.mode += 'b'
+        
         self.handle = self._open()
 
     
@@ -79,12 +82,13 @@ class Fastq:
     def _open(self):
         '''
         Autodetect extension and return filehandle.
+        Large (100MB) buffers are used to mitigate the impact of repeated write() calls.
         '''
+        buffer = open(self.filename, self.mode, buffering=int(1e8)) 
         if self.is_gzip:
-            self.mode = self.mode + 'b'
-            return gzip.open(self.filename, mode=self.mode)
+            return gzip.open(buffer, self.mode)
         else:
-            return open(self.filename, self.mode)
+            return buffer
 
 
     def close(self):
@@ -119,7 +123,7 @@ class Fastq:
     def get_encoding(self):
         '''
         Determine encoding by iterating through first 10000 read quals.
-        Will default to phred64_1.5 if you there aren't enough reads.
+        Will default to phred64_1.5 if there aren't enough reads.
         '''
         startpos = self.pos
         self.seek(0)
@@ -149,7 +153,7 @@ class Fastq:
 
     def writelines(self, read):
         '''
-        Same thing as the "normal" writelines.
+        Same thing as the "normal" writelines, but is buffered using io.StringIO.
         '''
         if self.is_gzip:
             read = [b.encode() for b in read]
@@ -198,4 +202,3 @@ class Fastq:
         # indexing should not count lines in file
         self.lineno = 0
         return idx
-

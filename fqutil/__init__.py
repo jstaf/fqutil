@@ -1,2 +1,2 @@
-from .fastq import Fastq, encoding2num
+from .fastq import *
 from .util import *

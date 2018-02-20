@@ -1,54 +1,74 @@
 import os
 import sys
 import gzip
+from collections import OrderedDict
 
 import fqutil
 
-# encoding symbols
-encodings = {'sanger': '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHI',  # (0 - 40)
-             'solexa64': ';<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh',  # (-5 - 40)
-             'phred64_1.3': '@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh',  # illumina 1.3+ (0 - 40)
-             'phred64_1.5': 'BCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh',  # illumina 1.5+ (3 - 40)
-             'phred33': '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJ'}  # illumina 1.8+ (0 - 41)
-# encoding offsets
-offsets = {'sanger': 0,
-           'solexa64': -5,
-           'phred64_1.3': 0,
-           'phred64_1.5': 3,
-           'phred33': 0}
+
+class Read:
+    '''
+    This class represents an individual fastq read. Importantly, this class
+    does nothing to the underlying data unless specifically instructed to.
+    '''
+
+    # encoding symbols (quals, offset)
+    encodings = {'phred64': (';<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghi', -5),
+                 'phred33': ('!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJ', 0)}
+    # everything K+ and up is unique to phred64
+    phred64_unique = set(encodings['phred64'][0][16:])
+
+    
+    def __init__(self, id, seq, quals, encoding='phred33'):
+        self.id = id
+        self.seq = seq
+        self.quals = quals
+        self.encoding = encoding
+
+    
+    def __str__(self):
+        return self.seq.strip()
+
+    
+    def __repr__(self):
+        return ''.join([self.id, self.seq, '+\n', self.quals])
 
 
-def get_line_encoding(quals):
-    '''
-    Determine quality encoding of line. 
-    It is not sufficient to run this on a single line to determine a file's encoding.
-    '''
-    if '#' in quals:
-        if 'J' in quals:
-            encoding = 'phred33'
+    def write(self, handle):
+        handle.writelines([self.id, self.seq, '+\n', self.quals])
+
+    
+    def unique_id(self):
+        '''
+        Get the unique identifier for a read without associated baggage.
+        '''
+        if '@SRR' in self.id:
+            offset = 1
         else:
-            encoding = 'sanger'
-    else:
-        if ';' in quals:
-            encoding = 'solexa64'
-        elif '@' in quals:
-            encoding = 'phred64_1.3'
+            offset = 0
+
+        return self.id.split()[offset]
+
+
+    def determine_encoding(self):
+        '''
+        Determine quality encoding of read. Note that this is not able to
+        accurately determine encoding from one read. You should only use this
+        method on many reads when trying to determine encoding from an unknown
+        filetype.
+        '''
+        if len(Read.phred64_unique.intersection(self.quals)) > 0:
+            return 'phred64'
         else:
-            encoding = 'phred64_1.5'
-
-    return encoding
+            return 'phred33'
 
 
-def encoding2num(quals, encoding):
-    '''
-    Convert FASTQ quals to numeric Q values
-    '''
-    quals = quals.replace('\n', '')
-    numeric_quals = []
-    for char in quals:
-        numeric_quals.append(encodings[encoding].find(char) + offsets[encoding])
-
-    return numeric_quals
+    def numeric_quals(self):
+        '''
+        Convert FASTQ quals to numeric Q values.
+        '''
+        enc = Read.encodings[self.encoding]  # for readability
+        return [enc[0].find(char) + enc[1] for char in self.quals.strip()]
 
 
 class Fastq:
@@ -57,18 +77,18 @@ class Fastq:
     (Biopython's Bio.SeqIO.index() does not support gzip compression :'( )
     '''
 
-    def __init__(self, filename, mode='r'):
-        self.pos = 0
-        self.lineno = 0
-        self.tempfilename = None
-        
+    def __init__(self, filename, mode='r', encoding=None):
+        self.readno = 0
         self.filename = filename
         self.is_gzip = fqutil.is_gzip(self.filename)
         self.mode = mode
         if self.is_gzip:
             self.mode += 'b'
         
-        self.handle = self._open()
+        self.handle = self.open()
+        self.encoding = encoding
+        if self.encoding is None and 'r' in mode:
+            self.encoding = self.determine_encoding()
 
     
     def __enter__(self):
@@ -79,32 +99,27 @@ class Fastq:
         self.close()
 
 
-    def _open(self):
+    def open(self):
         '''
-        Autodetect extension and return filehandle.
-        Large (100MB) buffers are used to mitigate the impact of repeated write() calls.
+        Autodetect extension and return filehandle. Large (100MB) buffers are
+        used to mitigate the impact of repeated write() calls. If encoding is
+        unknown, it is determined from the file.
         '''
-        buffer = open(self.filename, self.mode, buffering=int(1e8)) 
+        handle = open(self.filename, self.mode, buffering=int(1e8)) 
         if self.is_gzip:
-            return gzip.open(buffer, self.mode)
-        else:
-            return buffer
+            handle = gzip.open(handle, self.mode)
+        
+        return handle
 
 
     def close(self):
-        '''
-        Close file handles and delete tempspace if it exists.
-        '''
         self.handle.close()
-        if self.tempfilename is not None:
-            os.unlink(self.tempfilename)
 
 
-    def get_read(self):
+    def read(self):
         '''
-        Get a fastq read. Returns None at EOF.
+        Gets the next fastq read. Returns None at EOF.
         '''
-        self.pos = self.handle.tell()
         read = []
         for i in range(4):  # assumes 4-line FASTQ
             line = self.handle.readline()
@@ -116,44 +131,33 @@ class Fastq:
 
             read.append(line)
 
-        self.lineno += 1
-        return read
+        self.readno += 1
+        return Read(read[0], read[1], read[3], encoding=self.encoding)
 
     
-    def get_encoding(self):
+    def determine_encoding(self):
         '''
         Determine encoding by iterating through first 10000 read quals.
-        Will default to phred64_1.5 if there aren't enough reads.
         '''
-        startpos = self.pos
         self.seek(0)
         enclist = []
         for i in range(10000):
-            read = self.get_read()
+            read = self.read()
             if read is None:
                 break
             else:
-                enclist.append(get_line_encoding(read[2]))
+                enclist.append(read.determine_encoding())
 
-        self.seek(startpos)
-
-        # determine file encoding by looking for the presence of the most to least
-        # restrictive encodings
-        if 'phred33' in enclist:
-            return 'phred33'
-        elif 'sanger' in enclist:
-            return 'sanger'
-        elif 'solexa64' in enclist:
-            return 'solexa64'
-        elif 'phred64_1.3' in enclist:
-            return 'phred64_1.3'
+        self.seek(0)
+        if 'phred64' in enclist:
+            return 'phred64'
         else:
-            return 'phred64_1.5'
+            return 'phred33'
 
 
     def writelines(self, read):
         '''
-        Same thing as the "normal" writelines, but is buffered using io.StringIO.
+        Same thing as the "normal" writelines.
         '''
         if self.is_gzip:
             read = [b.encode() for b in read]
@@ -166,39 +170,20 @@ class Fastq:
         Jump to a particular file position.
         '''
         self.handle.seek(position)
-        self.pos = position
 
 
-    def index(self):
-        '''
-        Create a dictionary of readids and their seek positions.
-        Autodumps gzipped files to raw fastq to allow random access.
-        '''
-        
+    def tell(self):
+        self.handle.tell() 
+
+
+    def to_dict(self):
+        idx = OrderedDict()
         self.seek(0)
-        if self.is_gzip:
-            # initialize raw fastq temp space
-            self.tempfilename = self.filename + '.temp'
-            temp = open(self.tempfilename, mode='w+')
-        
-        # build index
-        idx = {}
         while True:
-            read = self.get_read()
+            read = self.read()
             if read is None:
                 break
-            else:
-                idx[read[0]] = self.pos
-                if self.is_gzip:
-                    temp.writelines(read)
 
-        if self.is_gzip:
-            # the tempfile is now used in place of original file handle
-            self.handle.close()
-            self.handle = temp
-            self.seek(0)
-            self.is_gzip = False
+            idx[read.unique_id()] = (read.seq, read.quals)
 
-        # indexing should not count lines in file
-        self.lineno = 0
         return idx

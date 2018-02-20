@@ -3,7 +3,7 @@
 import os
 import argparse
 
-from fqutil import Fastq, prefix_extension
+from fqutil import Fastq, Read, prefix_extension
 
 def main():
     parser = argparse.ArgumentParser(
@@ -18,82 +18,70 @@ def main():
             help='Second FASTQ file to be re-paired. May be gzipped.')
     argv = parser.parse_args()
 
-    fq1 = Fastq(argv.fastq1[0])
-    fq2 = Fastq(argv.fastq2[0])
-    pair_reads(fq1, fq2, keep_unique=argv.keep_unique, output_dir=argv.output_dir[0])
-    fq1.close()
-    fq2.close()
-
-
-def pair_reads(fastq1, fastq2, keep_unique=False, output_dir=None):
-    '''
-    Read-pairing algorithm
-    '''
-
     # handle output directory properly
+    fq1 = argv.fastq1[0]
+    fq2 = argv.fastq2[0]
+    output_dir = argv.output_dir[0]
     if output_dir is None:
-        output_dir = os.path.dirname(fastq1.filename)
+        output_dir = os.path.dirname(fq1)
     elif not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    outfile1 = os.path.join(output_dir, os.path.basename(fastq1.filename))
-    outfile2 = os.path.join(output_dir, os.path.basename(fastq2.filename))
-
     # index the second file for random-access
-    idx = fastq2.index()
-
-    # open output file handles
-    fastq1_common = Fastq(prefix_extension(outfile1, '_common'), 'w')
-    fastq2_common = Fastq(prefix_extension(outfile2, '_common'), 'w')
-    if keep_unique:
-        fastq1_unique = Fastq(prefix_extension(outfile1, '_unique'), 'w')
-
-    # because stats are nice
-    kept = 0
+    with Fastq(fq2) as fastq:
+        idx = fastq.to_dict()
+        fq2_total = fastq.readno
 
     # proceed through first file and look for matches against our index.
-    while True:
-        read1 = fastq1.get_read()
-        if read1 is None:
-            break
-        readid = read1[0]
-        if readid in idx.keys():
-            # match found in index - dump both reads to disk and remove from index.
-            fastq1_common.writelines(read1)
-            fastq2.seek(idx.pop(readid))
-            read2 = fastq2.get_read()
-            fastq2_common.writelines(read2)
-            kept += 1
-        elif keep_unique:
-            # write out to unique file for fastq1
-            fastq1_unique.writelines(read1)
-            
-    fastq1_common.close()
-    fastq2_common.close()
-
-    if keep_unique:
-        fastq1_unique.close()
-        # all remaining keys in dictionary are the unique reads for fastq2
-        with Fastq(prefix_extension(outfile2, '_unique'), 'w') as fastq2_unique:
-            for remaining in idx:
-                fastq2.seek(idx[remaining])
-                read = fastq2.get_read()
-                fastq2_unique.writelines(read)
+    out1 = os.path.join(output_dir, os.path.basename(fq1))
+    out2 = os.path.join(output_dir, os.path.basename(fq2))
+    if argv.keep_unique:
+        fq1_unique = Fastq(prefix_extension(out1, '_unique'), 'w')
     
-    print_stats(fastq1, kept)
-    print_stats(fastq2, kept)
-    print('%s reads paired' % kept)
+    with Fastq(fq1) as fastq, \
+            Fastq(prefix_extension(out1, '_common'), 'w') as fq1_common, \
+            Fastq(prefix_extension(out2, '_common'), 'w') as fq2_common:
+        
+        kept = 0
+        while True:
+            read = fastq.read()
+            if read is None:
+                break
+
+            read_id = read.unique_id()
+            if read_id in idx.keys():
+                # match found in index - dump both reads to disk and remove from index.
+                read.write(fq1_common)
+                seq, qual = idx.pop(read_id)
+                Read(read_id + '\n', seq, qual).write(fq2_common)
+
+                kept += 1
+            elif argv.keep_unique:
+                read.write(fq1_unique)
+
+        fq1_total = fastq.readno
+
+    if argv.keep_unique:
+        fq1_unique.close()
+        # all remaining keys in dictionary are the unique reads for fastq2
+        with Fastq(prefix_extension(out2, '_unique'), 'w') as fq2_unique:
+            for k, v in idx.items():
+                fq2_unique.writelines([k, '\n', v[0], '+\n', v[1]])
+    
+    print_stats(fq1, fq1_total, kept)
+    print_stats(fq2, fq2_total, kept)
+    print('{} reads paired.'.format(kept))
 
 
-def print_stats(fastq, kept):
-    n_uniq = fastq.lineno - kept
+def print_stats(filename, total, kept):
+    n_uniq = total - kept
     if kept == 0:
-        p_uniq = 100 - (kept / fastq.lineno * 100.)
+        p_uniq = 100 - (kept / total * 100.)
     else:
         p_uniq = 100
 
     print('{}: {} unique reads identified out of a total of {} ({:.1f} unique)'
-        .format(fastq.filename, n_uniq, fastq.lineno, p_uniq))
+        .format(filename, n_uniq, total, p_uniq))
 
 
 if __name__ == '__main__':

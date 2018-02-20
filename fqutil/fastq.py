@@ -120,16 +120,24 @@ class Fastq:
         '''
         Gets the next fastq read. Returns None at EOF.
         '''
-        read = []
-        for i in range(4):  # assumes 4-line FASTQ
-            line = self.handle.readline()
-            if self.is_gzip:
-                line = line.decode()
-            
-            if line == '':
-                return None  # EOF
+        # looks weird, but is faster than the old method
+        if self.is_gzip:
+            read = (
+                self.handle.readline().decode(),
+                self.handle.readline().decode(),
+                self.handle.readline().decode(),
+                self.handle.readline().decode()
+            )
+        else:
+            read = (
+                self.handle.readline(),
+                self.handle.readline(),
+                self.handle.readline(),
+                self.handle.readline()
+            )
 
-            read.append(line)
+        if read[0] == '':
+            return None
 
         self.readno += 1
         return Read(read[0], read[1], read[3], encoding=self.encoding)

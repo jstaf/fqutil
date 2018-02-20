@@ -16,6 +16,7 @@ __pycache__/
 *.swp
 *.temp
 *.pyc
+*.prof
 
 tests/*_common.fastq*
 tests/*_unique.fastq*

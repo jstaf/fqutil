@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
         name='fqutil',
-        version='1.0',
+        version='1.1',
         description='Several useful tools for manipulating FASTQ files.',
         url='https://github.com/jstaf/fqutil',
         author='Jeff Stafford',
